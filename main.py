@@ -1,60 +1,42 @@
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
+from pydantic import BaseModel
+from typing import List
+from fastapi.middleware.cors import CORSMiddleware
+import csv
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from Render + FastAPI!"}
+# CORS（カスタムGPTからのアクセスを許可）
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# OpenAPIスキーマに servers を手動追加
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    openapi_schema = get_openapi(
-        title="FastAPI",
-        version="1.0.0",
-        description="Custom GPT連携用API",
-        routes=app.routes,
-    )
-    openapi_schema["servers"] = [
-        {"url": "https://gpt-api-9qur.onrender.com"}
-    ]
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-app.openapi = custom_openapi
-
-
-# データ保存用（簡易メモリDB）
-users = []
-
-# Pydanticモデル
-class User(BaseModel):
+# フェイスシートモデル
+class FaceSheet(BaseModel):
     name: str
     birthdate: str
-    sex: str
-    address: str
+    notes: str
 
-@app.post("/register-user")
-def register_user(user: User):
-    users.append(user)
-    return {"status": "registered", "user": user}
+# 仮のデータベース（Renderでも動く）
+db: List[FaceSheet] = []
 
-@app.get("/list-users", response_model=List[User])
-def list_users():
-    return users
+@app.post("/register")
+def register_face_sheet(sheet: FaceSheet):
+    db.append(sheet)
+    return {"message": "登録しました"}
 
-@app.get("/export-users")
-def export_users():
-    filename = "users.csv"
-    with open(filename, mode="w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Name", "Birthdate", "Sex", "Address"])
-        for u in users:
-            writer.writerow([u.name, u.birthdate, u.sex, u.address])
-    return {"status": "exported", "file": filename}
+@app.get("/list", response_model=List[FaceSheet])
+def list_face_sheets():
+    return db
 
-@app.get("/")
-def root():
-    return {"message": "Hello from Render + FastAPI!"}
+@app.get("/export")
+def export_csv():
+    with open("export.csv", mode="w", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        writer.writerow(["name", "birthdate", "notes"])
+        for item in db:
+            writer.writerow([item.name, item.birthdate, item.notes])
+    return {"message": "CSV出力しました"}
