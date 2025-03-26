@@ -1,10 +1,30 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List
-import csv
-import os
+from fastapi.openapi.utils import get_openapi
 
 app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello from Render + FastAPI!"}
+
+# OpenAPIスキーマに servers を手動追加
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="FastAPI",
+        version="1.0.0",
+        description="Custom GPT連携用API",
+        routes=app.routes,
+    )
+    openapi_schema["servers"] = [
+        {"url": "https://gpt-api-9qur.onrender.com"}
+    ]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
 
 # データ保存用（簡易メモリDB）
 users = []
