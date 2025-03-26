@@ -4,7 +4,13 @@ from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 import csv
 
-app = FastAPI()
+app = FastAPI(
+    title="FastAPI",
+    version="0.1.0",
+    servers=[
+        {"url": "https://gpt-api-9qgur.onrender.com", "description": "Render deployment"}
+    ]
+)
 
 # CORS（カスタムGPTからのアクセスを許可）
 app.add_middleware(
